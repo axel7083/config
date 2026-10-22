@@ -1,0 +1,122 @@
+name: merge
+
+# Merges a pull request once an owner of every folder it touches approved its latest commit, and
+# no file changes a setting reserved for the platform team (README.md, "Owners and approvals").
+# Always runs from main, with the repository's token.
+#
+# The run that triggers this is untrusted (see check.yml, review.yml): only its head SHA is
+# used, to find which open pull request to look at. Everything else is re-derived from
+# GitHub's API and from main by config-cli. No step executes the pull request's content.
+on:
+  # Deliberate: this is the privileged half of a split workflow (see the header). The trigger
+  # only says "look at this head SHA"; nothing from the triggering run is trusted.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [check, review]
+    types: [completed]
+
+permissions: {}
+
+# One evaluation at a time; a burst of triggers collapses into one queued run.
+concurrency:
+  group: merge
+  cancel-in-progress: false
+
+env:
+  CONFIG_CLI_URL: https://github.com/open-macaron/macaron/releases/download/%40open-macaron%2Fconfig-cli%400.1.1/config-cli.mjs
+  CONFIG_CLI_SHA256: "ec93e90afcee647f8c6598e33a7b55a70eeb85fd9b54816af908af0a41f51468"
+
+jobs:
+  find:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      pr: ${{ steps.find.outputs.pr }}
+      sha: ${{ steps.find.outputs.sha }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::unexpected head SHA"; exit 1; }
+          # An index only: which open pull request has this head. Not evidence of anything.
+          # shellcheck disable=SC2016 # `$ENV` is jq's, not the shell's.
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --paginate \
+            --jq '.[] | select(.head.sha == $ENV.HEAD_SHA) | .number' | head -n 1)"
+          [[ -z "$pr" || "$pr" =~ ^[0-9]+$ ]] || { echo "::error::unexpected pull request number"; exit 1; }
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "${pr:+pull request #$pr}${pr:-no open pull request} at $HEAD_SHA"
+
+  validate:
+    needs: find
+    if: needs.find.outputs.pr != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      valid: ${{ steps.validate.outputs.valid }}
+    steps:
+      # The pull request's files, read as data by config-cli. What keeps this safe in a
+      # workflow_run context: this job's token can only read, the repository has no secrets,
+      # no credentials are kept, nothing from the checkout is executed, and no workflow here
+      # uses a cache (so nothing can be poisoned for main). Keep all of these true.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/pull/${{ needs.find.outputs.pr }}/head
+          path: pr
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - name: the checkout is the commit being evaluated
+        env:
+          HEAD_SHA: ${{ needs.find.outputs.sha }}
+        run: test "$(git -C pr rev-parse HEAD)" = "$HEAD_SHA"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: config-cli
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/config-cli.mjs" "$CONFIG_CLI_URL"
+          echo "$CONFIG_CLI_SHA256  $RUNNER_TEMP/config-cli.mjs" | sha256sum --check --strict -
+      - id: validate
+        run: |
+          if node "$RUNNER_TEMP/config-cli.mjs" validate pr; then valid=true; else valid=false; fi
+          echo "valid=$valid" >> "$GITHUB_OUTPUT"
+
+  merge:
+    needs: [find, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      merged: ${{ steps.merge.outputs.merged }}
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: config-cli
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/config-cli.mjs" "$CONFIG_CLI_URL"
+          echo "$CONFIG_CLI_SHA256  $RUNNER_TEMP/config-cli.mjs" | sha256sum --check --strict -
+      - id: merge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ needs.find.outputs.sha }}
+          FORMAT_VALID: ${{ needs.validate.outputs.valid == 'true' }}
+        run: node "$RUNNER_TEMP/config-cli.mjs" merge --head-sha "$HEAD_SHA" --format-valid "$FORMAT_VALID"
+
+  # A merge made with the repository's token triggers no push workflow: publish from here.
+  pages:
+    needs: merge
+    if: needs.merge.outputs.merged == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    # `./`: long-standing syntax for same-repository reusable workflows (`$/` is newer).
+    uses: ./.github/workflows/pages.yml # zizmor: ignore[self-repository]

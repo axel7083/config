@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../packages/contracts/schemas/config-project.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-macaron/macaron/main/packages/contracts/schemas/config-project.schema.json
 #
 # Sandbox project used to exercise the whole loop on a throwaway upstream repository.
 
