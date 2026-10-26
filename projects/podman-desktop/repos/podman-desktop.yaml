@@ -3,8 +3,9 @@
 # podman-desktop/podman-desktop. The bot's fork is the one GitHub allows per fork network (shared
 # with the test fork axel7083/podman-desktop, enrolled next to it).
 # Commits need a DCO sign-off (CONTRIBUTING.md); LLM_POLICY.md applies to everything posted.
-# Runs Podman Desktop built from the checkout, as on the test fork (Linux only for now), so
-# `@macaron-bot verify` can show a pull request's change.
+# Runs Podman Desktop built from the checkout, as on the test fork, so `@macaron-bot verify` can
+# show a pull request's change; `on windows` runs it on Windows, where the test fork has already
+# reproduced with a Hyper-V machine (axel7083/podman-desktop#40).
 
 repo: podman-desktop/podman-desktop
 fork: 2elnuw-podman-desktop
@@ -14,6 +15,9 @@ environment:
   name: podman-desktop
   params:
     machine: "true"
+platforms:
+  windows:
+    runsOn: windows-2025
 budgets:
   verify: 4.00
 commands:
