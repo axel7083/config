@@ -9,10 +9,10 @@ on:
 permissions: {}
 
 env:
-  # config-cli from open-macaron/macaron (@open-macaron/config-cli@0.1.4); the PR bumping it verified
+  # config-cli from open-macaron/macaron (@open-macaron/config-cli@0.1.8); the PR bumping it verified
   # its build attestation.
-  CONFIG_CLI_URL: https://github.com/open-macaron/macaron/releases/download/%40open-macaron%2Fconfig-cli%400.1.4/config-cli.mjs
-  CONFIG_CLI_SHA256: "4ed3fd24014a4be1c98f4d0b306131be9893091a5e0d87ed1e3aa8b1752d4928"
+  CONFIG_CLI_URL: https://github.com/open-macaron/macaron/releases/download/%40open-macaron%2Fconfig-cli%400.1.8/config-cli.mjs
+  CONFIG_CLI_SHA256: "d5d9afc141673a0ef6e6ba2534838be9c17e7640a1f2f8544345a9489056ecf8"
 
 jobs:
   validate:

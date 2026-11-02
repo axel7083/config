@@ -11,7 +11,7 @@ global.yaml                          defaults for every repository, global caps 
 projects/<project>/
 ├── OWNERS.yaml                      who approves changes in this folder
 ├── project.yaml                     review bots, budget, concurrency, project defaults
-└── repos/<repo>.yaml                one upstream repository: its fork, commands, overrides
+└── repos/<repo>.yaml                one upstream repository: commands, overrides
 ```
 
 A repository's settings are `global.yaml` → its `project.yaml` → its `repos/<repo>.yaml`, each level overriding the previous one.
