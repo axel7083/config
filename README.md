@@ -40,7 +40,7 @@ Find an account's id with `gh api users/<login> --jq .id`. **The id is what coun
 - every changed path (both sides of a rename) is inside `projects/<project>/`, and that folder's `OWNERS.yaml` **already exists on `main`**;
 - for each of those folders, an owner listed in its `OWNERS.yaml` **on `main`** (by id) has a standing approval on **the latest commit** of the pull request, and no owner of that folder has a standing "changes requested";
 - the author's own approval doesn't count;
-- **no file changes a setting reserved for the platform team**: `users` (deprecated, ignored), `bots`, `budget`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level or under a project's `defaults`. These decide whose comments count and what the bot may spend or run on;
+- **no file changes a setting reserved for the platform team**: `bots`, `budget`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level or under a project's `defaults`. These decide whose comments count and what the bot may spend or run on;
 - the files are valid, checked by the pinned `config-cli` with the controller's own validation.
 
 It then merges exactly the commit it checked (squash): if something was pushed in the meantime, GitHub refuses.
@@ -50,7 +50,8 @@ Consequences:
 - **Changing the content after an approval** needs a new approval: `main`'s ruleset dismisses approvals when a push changes what the pull request proposes.
 - **A pull request touching two projects** needs an owner of each.
 - **Owners manage their own `OWNERS.yaml`:** a change to it is approved by the owners currently on `main`.
-- **Owners onboard repositories on their own:** a new `repos/<repo>.yaml` that sets no reserved setting is merged on their approval.
+- **Owners onboard repositories on their own:** a new `repos/<repo>.yaml` that sets no reserved setting is merged on their approval. It names the upstream, not a fork: once the configuration is live, the controller creates the bot's fork and comments on the pull request with its link, or with why there is none.
+- **An owner's own pull request** needs another owner of that folder. A folder's only owner can't approve their own, so the platform team merges it by hand.
 - **The platform team merges by hand** changes to reserved settings, `global.yaml`, new project folders, `.github/`, this README and other root files.
 
 ### Why it's safe
