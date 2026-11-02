@@ -6,7 +6,6 @@
 # serves that catalog and points Podman Desktop at it (extensions.registryUrl), as its reviewers do.
 
 repo: podman-desktop/podman-desktop-catalog
-fork: 90s9ke-podman-desktop-catalog
 environment:
   source: shared
   name: podman-desktop-catalog
