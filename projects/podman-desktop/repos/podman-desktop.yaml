@@ -8,7 +8,6 @@
 # reproduced with a Hyper-V machine (axel7083/podman-desktop#40).
 
 repo: podman-desktop/podman-desktop
-fork: 2elnuw-podman-desktop
 timeoutMinutes: 75
 environment:
   source: shared
