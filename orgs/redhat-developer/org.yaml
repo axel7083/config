@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-macaron/macaron/main/packages/contracts/schemas/config-org.schema.json
+#
+# redhat-developer: only its Podman Desktop extensions, listed one by one (no fallback: most of the
+# org is unrelated to Podman Desktop).
+
+org: redhat-developer
+id: 11033755
+owners: "@open-macaron/maintainers"
+bots: []
+budget:
+  monthUsd: 5.00
+concurrency: 1
+defaults:
+  runsOn: ubuntu-26.04
+  timeoutMinutes: 45
+  knowledge: podman-desktop-extensions
+  environment:
+    source: shared
+    name: podman-desktop-extensions
+    params: {}
+  budgets:
+    implement: 5.00
+    reproduce: 3.00
+    verify: 3.00
+    address_review: 2.00
+    review: 0.50
+  # The DCO check runs on these repositories' pull requests.
+  contribution:
+    dco: true
+repos:
+  podman-desktop-hummingbird-ext:
+    commands: { build: pnpm build, test: pnpm test:unit, lint: pnpm lint:check }

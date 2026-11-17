@@ -1,6 +1,6 @@
 # open-macaron/config
 
-Who [macaron-bot](https://github.com/open-macaron/macaron) works for, and how: the trusted projects, their repositories, the review bots whose comments count, budgets, caps, models and environments. Who may trigger it is not here: it's an account of the macaron web app, invited by an administrator, with the capabilities they granted. The controller reads it from this repository's [published snapshot](#published-snapshot), and a merged change is live within seconds, without a deploy.
+Who [macaron-bot](https://github.com/open-macaron/macaron) works for, and how: the trusted GitHub organisations, their repositories, the review bots whose comments count, budgets, caps, models and environments. Who may trigger it is not here: it's an account of the macaron web app, invited by an administrator, with the capabilities they granted. The controller reads it from this repository's [published snapshot](#published-snapshot), and a merged change is live within seconds, without a deploy.
 
 Everything here is public. The file formats are JSON Schemas in [`open-macaron/macaron`](https://github.com/open-macaron/macaron/tree/main/packages/contracts/schemas) (`config-*.schema.json`), and its [SCALING.md §2](https://github.com/open-macaron/macaron/blob/main/docs/SCALING.md) explains the hierarchy.
 
@@ -8,17 +8,19 @@ Everything here is public. The file formats are JSON Schemas in [`open-macaron/m
 
 ```
 global.yaml                          defaults for every repository, global caps (platform team)
-projects/<project>/
+orgs/<org>/                          one GitHub organisation or user, named by its login
 ├── OWNERS.yaml                      who approves changes in this folder
-├── project.yaml                     review bots, budget, concurrency, project defaults
-└── repos/<repo>.yaml                one upstream repository: commands, overrides
+└── org.yaml                         its account id, review bots, budget, concurrency, defaults,
+                                     its repositories (repos) and what the others get (fallback)
 ```
 
-A repository's settings are `global.yaml` → its `project.yaml` → its `repos/<repo>.yaml`, each level overriding the previous one.
+A listed repository's settings are `global.yaml` → its org's `defaults` → its entry under `repos`, each level overriding the previous one. A repository of the org that isn't listed gets `global.yaml` → `defaults` → `fallback`, when the org has one (typically the `generic` environment); without one (`fallback: false`, the default), the bot only works on the listed repositories. The repositories the fallback takes share a monthly budget of their own, `fallback.budget`, within the org's.
+
+`id` is the account's id (`gh api users/<login> --jq .id`, organisations too): the controller follows a renamed org by it, and never trusts a login that moved to another account.
 
 ## Owners and approvals
 
-Each project folder has an `OWNERS.yaml`:
+Each org folder has an `OWNERS.yaml`:
 
 ```yaml
 owners:
@@ -32,15 +34,15 @@ Find an account's id with `gh api users/<login> --jq .id`. **The id is what coun
 
 1. Anyone opens a pull request, from a fork (nobody pushes branches here).
 2. `check` validates the files exactly as the controller does and annotates problems. It is feedback only.
-3. An owner of each project folder the pull request touches reviews it on GitHub and approves.
+3. An owner of each org folder the pull request touches reviews it on GitHub and approves.
 4. Each review wakes up `merge`, which decides from scratch and merges when it can. It keeps one comment on the pull request saying what is still missing, and @mentions the owners it waits for.
 
 `merge` merges a pull request only when **all** of these hold:
 
-- every changed path (both sides of a rename) is inside `projects/<project>/`, and that folder's `OWNERS.yaml` **already exists on `main`**;
+- every changed path (both sides of a rename) is inside `orgs/<org>/`, and that folder's `OWNERS.yaml` **already exists on `main`**;
 - for each of those folders, an owner listed in its `OWNERS.yaml` **on `main`** (by id) has a standing approval on **the latest commit** of the pull request, and no owner of that folder has a standing "changes requested";
 - the author's own approval doesn't count;
-- **no file changes a setting reserved for the platform team**: `bots`, `budget`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level or under a project's `defaults`. These decide whose comments count and what the bot may spend or run on;
+- **no file changes a setting reserved for the platform team**: `id` and `fallback` (which trusts every repository the org doesn't list), and `bots`, `budget`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level, under `defaults` or under a repository of `repos`. These decide which account is trusted, whose comments count and what the bot may spend or run on;
 - the files are valid, checked by the pinned `config-cli` with the controller's own validation.
 
 It then merges exactly the commit it checked (squash): if something was pushed in the meantime, GitHub refuses.
@@ -48,11 +50,11 @@ It then merges exactly the commit it checked (squash): if something was pushed i
 Consequences:
 
 - **Changing the content after an approval** needs a new approval: `main`'s ruleset dismisses approvals when a push changes what the pull request proposes.
-- **A pull request touching two projects** needs an owner of each.
+- **A pull request touching two orgs** needs an owner of each.
 - **Owners manage their own `OWNERS.yaml`:** a change to it is approved by the owners currently on `main`.
-- **Owners onboard repositories on their own:** a new `repos/<repo>.yaml` that sets no reserved setting is merged on their approval. It names the upstream, not a fork: once the configuration is live, the controller creates the bot's fork and comments on the pull request with its link, or with why there is none.
+- **Owners onboard repositories on their own:** a new entry under `repos` that sets no reserved setting is merged on their approval. It names the upstream, not a fork: once the configuration is live, the controller creates the bot's fork and comments on the pull request with its link, or with why there is none. A repository the fallback takes is forked on its first request instead, and the bot answers there.
 - **An owner's own pull request** needs another owner of that folder. A folder's only owner can't approve their own, so the platform team merges it by hand.
-- **The platform team merges by hand** changes to reserved settings, `global.yaml`, new project folders, `.github/`, this README and other root files.
+- **The platform team merges by hand** changes to reserved settings, `global.yaml`, new org folders, `.github/`, this README and other root files.
 
 ### Why it's safe
 
