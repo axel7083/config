@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/open-macaron/macaron/main/packages/contracts/schemas/config-org.schema.json
+#
+# podman-desktop: Podman Desktop itself, its extensions and the catalog that publishes them.
+# Extensions are listed once their root Containerfile installs and builds them with pnpm in a
+# multi-stage build (podman-desktop/gh-extensions-actions#5), which is what the
+# podman-desktop-extensions environment (open-macaron/runner) builds and runs; tracked in
+# podman-desktop/gh-extensions-actions#4. Any other repository of the org runs in the generic
+# environment (fallback), under at most $5 a month each.
+
+org: podman-desktop
+id: 129859460
+owners: "@open-macaron/maintainers"
+bots: []
+concurrency: 2
+defaults:
+  runsOn: ubuntu-26.04
+  timeoutMinutes: 45
+  knowledge: podman-desktop-extensions
+  environment:
+    source: shared
+    name: podman-desktop-extensions
+    params: {}
+  budgets:
+    implement: 5.00
+    reproduce: 3.00
+    verify: 3.00
+    address_review: 2.00
+    review: 0.50
+  # The DCO check runs on these repositories' pull requests.
+  contribution:
+    dco: true
+repos:
+  # Reviews against the podman-desktop rules of open-macaron/knowledge, and the other modes in the
+  # Podman Desktop environment. The bot's fork is the one GitHub allows per fork network (shared
+  # with the test fork axel7083/podman-desktop). Commits need a DCO sign-off (CONTRIBUTING.md);
+  # LLM_POLICY.md applies to everything posted. Runs Podman Desktop built from the checkout, so
+  # `@macaron-bot verify` can show a pull request's change; `on windows` runs it on Windows, where
+  # the test fork has already reproduced with a Hyper-V machine (axel7083/podman-desktop#40).
+  podman-desktop:
+    knowledge: podman-desktop
+    timeoutMinutes: 75
+    environment:
+      source: shared
+      name: podman-desktop
+      params:
+        machine: "true"
+    platforms:
+      windows:
+        runsOn: windows-2025
+    budgets:
+      verify: 4.00
+      review: 1.00
+    commands:
+      build: pnpm build
+      test: pnpm test:unit
+      lint: pnpm lint:check
+
+  # Mostly pull requests that publish an extension version in static/. The podman-desktop-catalog
+  # environment installs the latest Podman Desktop; when a change touches static/, the agent serves
+  # that catalog and points Podman Desktop at it (extensions.registryUrl), as its reviewers do.
+  podman-desktop-catalog:
+    environment:
+      source: shared
+      name: podman-desktop-catalog
+      params: {}
+    commands:
+      build: pnpm build
+      test: pnpm test:unit
+      lint: pnpm lint:check
+
+  extension-grype:
+    commands: { build: pnpm build, test: pnpm test:unit, lint: pnpm lint:check }
+  extension-kreate:
+    commands: { build: pnpm build, test: pnpm test:unit, lint: pnpm lint:check }
+  extension-kubernetes-contexts:
+    commands: { build: pnpm build, test: pnpm test, lint: pnpm lint:check }
+  extension-kubernetes-dashboard:
+    commands: { build: pnpm build, test: pnpm test, lint: pnpm lint:check }
+  extension-layers-explorer:
+    commands: { build: pnpm build, test: pnpm test, lint: pnpm lint:check }
+  extension-lima:
+    commands: { build: pnpm build, test: pnpm test }
+  extension-minikube:
+    commands: { build: pnpm build, test: pnpm test, lint: pnpm lint:check }
+  # The bot's fork already exists: it served the test fork axel7083/extension-podman-quadlet.
+  extension-podman-quadlet:
+    commands: { build: pnpm build, test: pnpm test:unit, lint: pnpm lint:check }
+  extension-postgresql:
+    commands: { build: pnpm build, test: pnpm test:unit, lint: pnpm lint:check }
+  # No test script yet (podman-desktop/wslc#2 is the scaffold).
+  wslc:
+    commands: { build: pnpm build, lint: pnpm lint:check }
+
+fallback:
+  environment:
+    source: shared
+    name: generic
+    params: {}
+  caps:
+    perRepoMonthUsd: 5.00

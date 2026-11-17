@@ -1,9 +1,0 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/open-macaron/macaron/main/packages/contracts/schemas/config-repo.schema.json
-#
-# podman-desktop/extension-postgresql.
-
-repo: podman-desktop/extension-postgresql
-commands:
-  build: pnpm build
-  test: pnpm test:unit
-  lint: pnpm lint:check
