@@ -10,11 +10,11 @@ Everything here is public. The file formats are JSON Schemas in [`open-macaron/m
 global.yaml                          defaults for every repository, global caps (platform team)
 orgs/<org>/                          one GitHub organisation or user, named by its login
 ├── OWNERS.yaml                      who approves changes in this folder
-└── org.yaml                         its account id, review bots, budget, concurrency, defaults,
+└── org.yaml                         its account id, review bots, concurrency, defaults,
                                      its repositories (repos) and what the others get (fallback)
 ```
 
-A listed repository's settings are `global.yaml` → its org's `defaults` → its entry under `repos`, each level overriding the previous one. A repository of the org that isn't listed gets `global.yaml` → `defaults` → `fallback`, when the org has one (typically the `generic` environment); without one (`fallback: false`, the default), the bot only works on the listed repositories. The repositories the fallback takes share a monthly budget of their own, `fallback.budget`, within the org's.
+A listed repository's settings are `global.yaml` → its org's `defaults` → its entry under `repos`, each level overriding the previous one. A repository of the org that isn't listed gets `global.yaml` → `defaults` → `fallback`, when the org has one (typically the `generic` environment); without one (`fallback: false`, the default), the bot only works on the listed repositories. There is no org budget: every run is billed to the LLM key of whoever asked for it, under their own monthly cap, and the repository and thread caps (`caps`) bound what any repository spends.
 
 `id` is the account's id (`gh api users/<login> --jq .id`, organisations too): the controller follows a renamed org by it, and never trusts a login that moved to another account.
 
@@ -42,7 +42,7 @@ Find an account's id with `gh api users/<login> --jq .id`. **The id is what coun
 - every changed path (both sides of a rename) is inside `orgs/<org>/`, and that folder's `OWNERS.yaml` **already exists on `main`**;
 - for each of those folders, an owner listed in its `OWNERS.yaml` **on `main`** (by id) has a standing approval on **the latest commit** of the pull request, and no owner of that folder has a standing "changes requested";
 - the author's own approval doesn't count;
-- **no file changes a setting reserved for the platform team**: `id` and `fallback` (which trusts every repository the org doesn't list), and `bots`, `budget`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level, under `defaults` or under a repository of `repos`. These decide which account is trusted, whose comments count and what the bot may spend or run on;
+- **no file changes a setting reserved for the platform team**: `id` and `fallback` (which trusts every repository the org doesn't list), and `bots`, `concurrency`, `budgets`, `caps`, `reviewCost`, `runsOn` or `platforms`, at the top level, under `defaults` or under a repository of `repos`. These decide which account is trusted, whose comments count and what the bot may spend or run on;
 - the files are valid, checked by the pinned `config-cli` with the controller's own validation.
 
 It then merges exactly the commit it checked (squash): if something was pushed in the meantime, GitHub refuses.

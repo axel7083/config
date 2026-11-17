@@ -5,14 +5,12 @@
 # multi-stage build (podman-desktop/gh-extensions-actions#5), which is what the
 # podman-desktop-extensions environment (open-macaron/runner) builds and runs; tracked in
 # podman-desktop/gh-extensions-actions#4. Any other repository of the org runs in the generic
-# environment, on a budget of its own (fallback).
+# environment (fallback), under at most $5 a month each.
 
 org: podman-desktop
 id: 129859460
 owners: "@open-macaron/maintainers"
 bots: []
-budget:
-  monthUsd: 60.00
 concurrency: 2
 defaults:
   runsOn: ubuntu-26.04
@@ -94,8 +92,6 @@ repos:
     commands: { build: pnpm build, lint: pnpm lint:check }
 
 fallback:
-  budget:
-    monthUsd: 10.00
   environment:
     source: shared
     name: generic

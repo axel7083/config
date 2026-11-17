@@ -6,8 +6,6 @@ org: axel7083
 id: 42176370
 owners: "@open-macaron/maintainers"
 bots: []
-budget:
-  monthUsd: 30.00
 concurrency: 1
 repos:
   # Sandbox upstream for end-to-end tests: a Podman Desktop extension template.

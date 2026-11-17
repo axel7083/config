@@ -6,8 +6,6 @@ org: crc-org
 id: 107111437
 owners: "@open-macaron/maintainers"
 bots: []
-budget:
-  monthUsd: 5.00
 concurrency: 1
 defaults:
   runsOn: ubuntu-26.04
